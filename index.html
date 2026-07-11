@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="让 AI 像可靠同事一样回报：该短时短，该细时细。" />
+    <title>Report Mode — AI 工作回报策略</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#workspace" aria-label="Report Mode 首页">
+          <span class="brand-dot"></span> Report Mode
+        </a>
+        <div class="topbar-actions">
+          <span class="offline-pill" id="connectionStatus">离线案例模式</span>
+          <button class="text-button" id="settingsToggle" type="button" aria-expanded="false" aria-controls="apiSettings">API 设置</button>
+        </div>
+      </header>
+
+      <section class="settings-panel" id="apiSettings" hidden aria-label="兼容 API 设置">
+        <div class="settings-intro">
+          <p class="kicker">OPTIONAL API</p>
+          <h2>生成真实对比</h2>
+          <p>接入 OpenAI 兼容 API 后，Report Mode 会对同一任务生成普通回答与工作回报。密钥只保存在当前浏览器。</p>
+        </div>
+        <div class="settings-form">
+          <label>Base URL<input id="baseUrl" type="url" placeholder="https://api.example.com/v1" autocomplete="url" /></label>
+          <label>模型名<input id="modelName" type="text" placeholder="例如 gpt-4.1-mini" autocomplete="off" /></label>
+          <label>API Key<input id="apiKey" type="password" placeholder="仅保存在此浏览器" autocomplete="off" /></label>
+          <div class="settings-actions">
+            <button class="button button-dark" id="saveSettings" type="button">保存设置</button>
+            <button class="text-button danger" id="clearSettings" type="button">清除本机密钥</button>
+          </div>
+          <p class="settings-note">仅适用于支持浏览器跨域访问（CORS）的兼容服务。不会向本项目服务器发送任何密钥。</p>
+        </div>
+      </section>
+
+      <section class="hero">
+        <p class="kicker">AI OUTPUT POLICY WORKBENCH</p>
+        <h1>少说废话，<br /><em>说清工作。</em></h1>
+        <p>让同一个任务得到两种回答：普通 AI 的说明，和一个可靠同事会给你的工作回报。</p>
+      </section>
+
+      <section class="workspace" id="workspace" aria-label="Report Mode 工作台">
+        <section class="task-panel">
+          <div class="section-heading">
+            <div>
+              <p class="kicker">01 · CONTEXT</p>
+              <h2>这次要做什么？</h2>
+            </div>
+            <span class="mode-chip" id="modeChip">简短交付</span>
+          </div>
+
+          <div class="case-picker" aria-label="内置案例">
+            <button class="case-card active" type="button" data-case="code">
+              <span>案例 A</span><strong>修复支付页按钮</strong><small>局部改动，已完成</small>
+            </button>
+            <button class="case-card" type="button" data-case="research">
+              <span>案例 B</span><strong>选择模型方案</strong><small>需要说明取舍</small>
+            </button>
+            <button class="case-card" type="button" data-case="blocked">
+              <span>案例 C</span><strong>部署被权限阻塞</strong><small>需要负责人决定</small>
+            </button>
+          </div>
+
+          <label class="task-label" for="taskInput">或输入你的任务</label>
+          <textarea id="taskInput" rows="6" placeholder="例如：检查登录页偶发 500 的原因，并给出今天可执行的修复方案。"></textarea>
+
+          <details class="policy-tuning" id="policyTuning">
+            <summary>调整策略 <span>可选</span></summary>
+            <div class="tuning-grid">
+              <label>工作状态
+                <select id="stageSelect">
+                  <option value="done">完成交付</option>
+                  <option value="progress">进行中</option>
+                  <option value="blocked">遇到阻塞</option>
+                </select>
+              </label>
+              <label>影响范围
+                <select id="riskSelect">
+                  <option value="low">低：局部、可逆</option>
+                  <option value="medium">中：有方案取舍</option>
+                  <option value="high">高：数据、安全或外部影响</option>
+                </select>
+              </label>
+              <label>回报方式
+                <select id="modeOverride">
+                  <option value="auto">自动推荐</option>
+                  <option value="brief">简短交付</option>
+                  <option value="standard">标准决策</option>
+                  <option value="escalate">升级回报</option>
+                </select>
+              </label>
+            </div>
+          </details>
+
+          <div class="task-actions">
+            <button class="button button-dark" id="createComparison" type="button">生成对比 <span>→</span></button>
+            <p id="taskFeedback" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="comparison-panel" aria-label="输出对比">
+          <div class="section-heading comparison-heading">
+            <div>
+              <p class="kicker">02 · OUTPUT</p>
+              <h2>同一任务，两种回报</h2>
+            </div>
+            <button class="run-api" id="runApi" type="button">用 API 生成真实对比</button>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="output-card ordinary">
+              <div class="output-card-head"><span>普通 AI</span><small>信息容易混在一起</small></div>
+              <div class="output-body" id="ordinaryOutput"></div>
+            </article>
+            <article class="output-card report">
+              <div class="output-card-head"><span>Report Mode</span><small id="reportModeLabel">简短交付</small></div>
+              <div class="output-body" id="reportOutput"></div>
+            </article>
+          </div>
+          <p class="comparison-status" id="comparisonStatus" aria-live="polite">正在显示离线案例。接入 API 后可生成你的真实任务对比。</p>
+        </section>
+
+        <section class="export-panel" aria-label="导出到 Codex">
+          <div>
+            <p class="kicker">03 · EXPORT</p>
+            <h2>把风格交给 Codex</h2>
+            <p class="export-lede">当前任务的提示词可立即复制；项目级规则以片段形式导出，安全合并到已有的 <code>AGENTS.md</code>。</p>
+          </div>
+          <div class="export-actions">
+            <button class="button button-lime" id="copyTaskPrompt" type="button">复制当前任务提示词</button>
+            <button class="button button-line" id="copyAgents" type="button">复制 AGENTS.md 片段</button>
+            <button class="text-button download" id="downloadAgents" type="button">下载 .md 文件 ↓</button>
+          </div>
+          <pre id="agentsPreview"></pre>
+        </section>
+      </section>
+
+      <section class="modes-strip" aria-label="回报模式说明">
+        <div><span>01</span><strong>简短交付</strong><p>结果、改动、验证。</p></div>
+        <div><span>02</span><strong>标准决策</strong><p>补一个关键取舍。</p></div>
+        <div><span>03</span><strong>升级回报</strong><p>阻塞、影响、要你决定什么。</p></div>
+      </section>
+
+      <footer>
+        <span>Report Mode · A small output-policy demo for focused work.</span>
+        <span>你的 API Key 不会离开浏览器。</span>
+      </footer>
+    </main>
+    <script src="app.js?v=20260710-3"></script>
+  </body>
+</html>
