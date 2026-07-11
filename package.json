@@ -1,0 +1,11 @@
+{
+  "name": "codex-report-mode",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "eval": "node evals/run-evals.mjs --format markdown",
+    "eval:json": "node evals/run-evals.mjs --format json"
+  }
+}

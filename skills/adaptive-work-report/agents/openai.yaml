@@ -1,0 +1,4 @@
+interface:
+  display_name: "Adaptive Work Report"
+  short_description: "Evidence-gated concise Codex work reports"
+  default_prompt: "Use $adaptive-work-report to finish this task with an evidence-gated work report."
