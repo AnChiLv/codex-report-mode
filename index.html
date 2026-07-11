@@ -3,153 +3,93 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="让 AI 像可靠同事一样回报：该短时短，该细时细。" />
-    <title>Report Mode — AI 工作回报策略</title>
+    <meta name="description" content="Report Mode：用 Skill、确定性 Harness 和条件式 Reviewer 生成高信号 Codex 工作汇报。" />
+    <title>Report Mode — Evidence before eloquence</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main class="app-shell">
+    <main class="shell">
       <header class="topbar">
-        <a class="brand" href="#workspace" aria-label="Report Mode 首页">
-          <span class="brand-dot"></span> Report Mode
-        </a>
-        <div class="topbar-actions">
-          <span class="offline-pill" id="connectionStatus">离线案例模式</span>
-          <button class="text-button" id="settingsToggle" type="button" aria-expanded="false" aria-controls="apiSettings">API 设置</button>
-        </div>
+        <a class="brand" href="#demo"><span></span> Report Mode</a>
+        <div class="top-meta"><b>v2</b><span>Skill · Harness · Conditional Reviewer</span></div>
       </header>
 
-      <section class="settings-panel" id="apiSettings" hidden aria-label="兼容 API 设置">
-        <div class="settings-intro">
-          <p class="kicker">OPTIONAL API</p>
-          <h2>生成真实对比</h2>
-          <p>接入 OpenAI 兼容 API 后，Report Mode 会对同一任务生成普通回答与工作回报。密钥只保存在当前浏览器。</p>
-        </div>
-        <div class="settings-form">
-          <label>Base URL<input id="baseUrl" type="url" placeholder="https://api.example.com/v1" autocomplete="url" /></label>
-          <label>模型名<input id="modelName" type="text" placeholder="例如 gpt-4.1-mini" autocomplete="off" /></label>
-          <label>API Key<input id="apiKey" type="password" placeholder="仅保存在此浏览器" autocomplete="off" /></label>
-          <div class="settings-actions">
-            <button class="button button-dark" id="saveSettings" type="button">保存设置</button>
-            <button class="text-button danger" id="clearSettings" type="button">清除本机密钥</button>
-          </div>
-          <p class="settings-note">仅适用于支持浏览器跨域访问（CORS）的兼容服务。不会向本项目服务器发送任何密钥。</p>
-        </div>
-      </section>
-
       <section class="hero">
-        <p class="kicker">AI OUTPUT POLICY WORKBENCH</p>
-        <h1>少说废话，<br /><em>说清工作。</em></h1>
-        <p>让同一个任务得到两种回答：普通 AI 的说明，和一个可靠同事会给你的工作回报。</p>
+        <p class="eyebrow">ADAPTIVE WORK REPORTING FOR CODEX</p>
+        <h1>不是更短，<br /><em>是更有证据。</em></h1>
+        <p class="hero-copy">一个可以日常安装使用，也可以复现实验的微型 Agent 系统。它根据任务风险和验证证据决定汇报篇幅，只在值得时调用独立 Reviewer。</p>
+        <div class="hypothesis"><span>研究假设</span><p>好的 Agent 汇报，不是字数更少，而是单位注意力里的决策价值更高。</p></div>
       </section>
 
-      <section class="workspace" id="workspace" aria-label="Report Mode 工作台">
-        <section class="task-panel">
-          <div class="section-heading">
-            <div>
-              <p class="kicker">01 · CONTEXT</p>
-              <h2>这次要做什么？</h2>
+      <section class="demo" id="demo">
+        <div class="section-head">
+          <div><p class="eyebrow">01 · REAL TRACES</p><h2>选择一条实际工作轨迹</h2></div>
+          <p>三个案例共用同一个确定性 Harness。</p>
+        </div>
+        <div class="case-picker" id="casePicker" aria-label="运行案例"></div>
+
+        <section class="control-grid">
+          <article class="task-card">
+            <p class="card-label">PRIMARY AGENT EVIDENCE</p>
+            <h3 id="taskTitle"></h3>
+            <p class="task-summary" id="taskSummary"></p>
+            <div class="controls">
+              <label>任务状态<select id="statusSelect"><option value="completed">已完成</option><option value="partial">部分完成</option><option value="blocked">遇到阻塞</option></select></label>
+              <label>风险等级<select id="riskSelect"><option value="low">低风险</option><option value="medium">中风险</option><option value="high">高风险</option></select></label>
+              <label class="decision-control"><input id="decisionToggle" type="checkbox" /> 需要人工决定</label>
             </div>
-            <span class="mode-chip" id="modeChip">简短交付</span>
-          </div>
+            <div class="evidence-head"><b>结构化证据</b><button id="toggleVerification" type="button">移除验证证据</button></div>
+            <ul class="evidence-list" id="evidenceList"></ul>
+          </article>
 
-          <div class="case-picker" aria-label="内置案例">
-            <button class="case-card active" type="button" data-case="code">
-              <span>案例 A</span><strong>修复支付页按钮</strong><small>局部改动，已完成</small>
-            </button>
-            <button class="case-card" type="button" data-case="research">
-              <span>案例 B</span><strong>选择模型方案</strong><small>需要说明取舍</small>
-            </button>
-            <button class="case-card" type="button" data-case="blocked">
-              <span>案例 C</span><strong>部署被权限阻塞</strong><small>需要负责人决定</small>
-            </button>
-          </div>
+          <article class="gate-card">
+            <div class="gate-top"><div><p class="card-label">DETERMINISTIC HARNESS</p><h3>Report Gate</h3></div><span class="mode-badge" id="modeBadge"></span></div>
+            <dl class="gate-stats">
+              <div><dt>信息预算</dt><dd id="bulletBudget"></dd></div>
+              <div><dt>独立复核</dt><dd id="reviewRequired"></dd></div>
+              <div><dt>缺失证据</dt><dd id="missingEvidence"></dd></div>
+            </dl>
+            <p class="required-label">必需栏目</p>
+            <div class="section-chips" id="sectionChips"></div>
+            <details><summary>查看 Harness JSON</summary><pre id="gateJson"></pre></details>
+          </article>
+        </section>
 
-          <label class="task-label" for="taskInput">或输入你的任务</label>
-          <textarea id="taskInput" rows="6" placeholder="例如：检查登录页偶发 500 的原因，并给出今天可执行的修复方案。"></textarea>
-
-          <details class="policy-tuning" id="policyTuning">
-            <summary>调整策略 <span>可选</span></summary>
-            <div class="tuning-grid">
-              <label>工作状态
-                <select id="stageSelect">
-                  <option value="done">完成交付</option>
-                  <option value="progress">进行中</option>
-                  <option value="blocked">遇到阻塞</option>
-                </select>
-              </label>
-              <label>影响范围
-                <select id="riskSelect">
-                  <option value="low">低：局部、可逆</option>
-                  <option value="medium">中：有方案取舍</option>
-                  <option value="high">高：数据、安全或外部影响</option>
-                </select>
-              </label>
-              <label>回报方式
-                <select id="modeOverride">
-                  <option value="auto">自动推荐</option>
-                  <option value="brief">简短交付</option>
-                  <option value="standard">标准决策</option>
-                  <option value="escalate">升级回报</option>
-                </select>
-              </label>
-            </div>
-          </details>
-
-          <div class="task-actions">
-            <button class="button button-dark" id="createComparison" type="button">生成对比 <span>→</span></button>
-            <p id="taskFeedback" aria-live="polite"></p>
+        <section class="pipeline" aria-label="条件式多智能体流程">
+          <div class="section-head compact"><div><p class="eyebrow">02 · ORCHESTRATION</p><h2>只在值得时增加一个 Agent</h2></div></div>
+          <div class="pipeline-track">
+            <article><span>01</span><b>Primary Agent</b><p id="primaryState"></p></article>
+            <i>→</i>
+            <article class="active"><span>02</span><b>Harness</b><p id="harnessState"></p></article>
+            <i>→</i>
+            <article id="reviewerCard"><span>03</span><b>Reviewer Agent</b><p id="reviewerState"></p><small id="reviewerFinding"></small></article>
+            <i>→</i>
+            <article><span>04</span><b>Final Report</b><p id="reportState"></p></article>
           </div>
         </section>
 
-        <section class="comparison-panel" aria-label="输出对比">
-          <div class="section-heading comparison-heading">
-            <div>
-              <p class="kicker">02 · OUTPUT</p>
-              <h2>同一任务，两种回报</h2>
-            </div>
-            <button class="run-api" id="runApi" type="button">用 API 生成真实对比</button>
-          </div>
-
+        <section class="comparison">
+          <div class="section-head compact"><div><p class="eyebrow">03 · OUTPUT STUDY</p><h2>同一事实，三种系统</h2></div><p>不是现场随机生成，而是可复现的运行记录。</p></div>
           <div class="comparison-grid">
-            <article class="output-card ordinary">
-              <div class="output-card-head"><span>普通 AI</span><small>信息容易混在一起</small></div>
-              <div class="output-body" id="ordinaryOutput"></div>
-            </article>
-            <article class="output-card report">
-              <div class="output-card-head"><span>Report Mode</span><small id="reportModeLabel">简短交付</small></div>
-              <div class="output-body" id="reportOutput"></div>
-            </article>
+            <article><header><b>普通输出</b><span>Baseline</span></header><div id="baselineOutput"></div></article>
+            <article><header><b>只加简短 Prompt</b><span>Prompt-only</span></header><div id="promptOutput"></div></article>
+            <article class="system-output"><header><b>完整系统</b><span>Skill + Harness</span></header><div id="systemOutput"></div></article>
           </div>
-          <p class="comparison-status" id="comparisonStatus" aria-live="polite">正在显示离线案例。接入 API 后可生成你的真实任务对比。</p>
         </section>
 
-        <section class="export-panel" aria-label="导出到 Codex">
-          <div>
-            <p class="kicker">03 · EXPORT</p>
-            <h2>把风格交给 Codex</h2>
-            <p class="export-lede">当前任务的提示词可立即复制；项目级规则以片段形式导出，安全合并到已有的 <code>AGENTS.md</code>。</p>
-          </div>
-          <div class="export-actions">
-            <button class="button button-lime" id="copyTaskPrompt" type="button">复制当前任务提示词</button>
-            <button class="button button-line" id="copyAgents" type="button">复制 AGENTS.md 片段</button>
-            <button class="text-button download" id="downloadAgents" type="button">下载 .md 文件 ↓</button>
-          </div>
-          <pre id="agentsPreview"></pre>
+        <section class="metrics-panel">
+          <div><p class="eyebrow">ANNOTATED EVALUATION</p><h2>六个固定样例，不靠观感打分</h2><p>评测同时检查 Harness 路由、必需信息、无证据结论、无关内容和下一步清晰度。</p></div>
+          <div class="metrics" id="metrics"></div>
         </section>
       </section>
 
-      <section class="modes-strip" aria-label="回报模式说明">
-        <div><span>01</span><strong>简短交付</strong><p>结果、改动、验证。</p></div>
-        <div><span>02</span><strong>标准决策</strong><p>补一个关键取舍。</p></div>
-        <div><span>03</span><strong>升级回报</strong><p>阻塞、影响、要你决定什么。</p></div>
+      <section class="install">
+        <div><p class="eyebrow">USE IT IN CODEX</p><h2>Demo 是解释，Skill 才是工具。</h2><p>仓库内的 Skill 包含证据规范、Reviewer 契约和同一个 Report Gate。复制到个人 Skills 目录后，可在任务中调用 <code>$adaptive-work-report</code>。</p></div>
+        <div class="install-box"><code id="installCommand">mkdir -p ~/.codex/skills &amp;&amp; cp -R skills/adaptive-work-report ~/.codex/skills/</code><button id="copyInstall" type="button">复制安装命令</button><a href="skills/adaptive-work-report/SKILL.md">查看 Skill 源码 →</a></div>
       </section>
 
-      <footer>
-        <span>Report Mode · A small output-policy demo for focused work.</span>
-        <span>你的 API Key 不会离开浏览器。</span>
-      </footer>
+      <footer><span>Report Mode v2 · Evidence before eloquence.</span><a href="https://github.com/AnChiLv/codex-report-mode">GitHub ↗</a></footer>
     </main>
-    <script src="app.js?v=20260710-3"></script>
+    <script type="module" src="app.js?v=2.0.0"></script>
   </body>
 </html>

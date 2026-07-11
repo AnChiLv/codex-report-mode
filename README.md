@@ -1,90 +1,147 @@
 # Report Mode
 
-> Make AI report like a reliable teammate.
+> Evidence before eloquence.
 
-一个零依赖、可部署到 GitHub Pages 的 AI 输出策略工作台。它不追求把所有回答压得越短越好，而是让 AI 按任务阶段和影响范围选择合适的信息密度：小改动短报、有取舍则说明原因、遇到风险或阻塞则明确升级。
+Report Mode is a small, reproducible system for adaptive Codex work reports. It combines an installable Skill, a deterministic evidence gate, and a conditional independent Reviewer Agent. It does not make every answer shorter: it spends more human attention only when risk, missing evidence, blockers, or decisions justify it.
 
-## What it demonstrates
+**Live demo:** https://anchilv.github.io/codex-report-mode/
 
-Report Mode treats an AI response as a work report instead of a generic answer:
+## Research question
 
-| Mode | When to use it | Required information |
-| --- | --- | --- |
-| Brief delivery | Small, reversible work is complete | Result, change, verification |
-| Standard decision | A choice or trade-off matters | Recommendation, one key trade-off, next step |
-| Escalated report | Work is blocked or risk is high | Blocker, impact, decision needed |
+Can a coding agent choose report detail from task evidence and decision value—rather than a fixed verbosity prompt—while preserving critical information and reducing unsupported claims?
 
-The demo includes three offline examples and a custom-task workflow. For a custom task it recommends a mode locally, lets the user adjust it, and exports a Codex prompt or an `AGENTS.md` snippet.
+The repository compares:
 
-With an OpenAI-compatible API, it can also generate two live outputs for the same task: a normal AI response and a Report Mode response.
+1. a normal assistant response;
+2. a response with only a “be concise” prompt;
+3. the full Skill + Harness + conditional Reviewer workflow.
 
-## Run locally
-
-This is a static site with no build step. Open `index.html` in a browser, or serve this directory with any static server.
-
-## Optional API mode
-
-Open **API 设置** and enter:
-
-- **Base URL** — for example `https://api.example.com/v1`
-- **Model name**
-- **API Key**
-
-The app calls `${Base URL}/chat/completions` using the OpenAI Chat Completions format. This makes it compatible with services such as OpenAI, Qwen, DeepSeek, or a compatible gateway when that service allows browser CORS requests.
-
-The API key is stored only in the current browser's `localStorage`. It is never committed, sent to this repository, or routed through a backend. Use **清除本机密钥** to remove it.
-
-> Direct browser API calls will fail if the selected provider blocks CORS. That is expected for some services. The v1 fallback is the offline demo and rule export; a future version can add a local proxy that reads an environment variable instead.
-
-## Use with Codex
-
-The export area provides two outputs:
-
-1. **Current task prompt** — paste it into a single Codex task.
-2. **`AGENTS.md` snippet** — merge the `## Report Mode` section into an existing project policy. It never asks you to replace your existing file.
-
-## Deploy to GitHub Pages
-
-1. Create a GitHub repository and push these files to its default branch.
-2. In GitHub, open **Settings → Pages**.
-3. Choose **Deploy from a branch**, select the default branch and the repository root.
-4. Open the generated Pages URL.
-
-No server-side environment variables or build commands are required.
-
-## Architecture
+## System
 
 ```text
-task text / built-in example
-        ↓
-local mode recommendation + optional manual adjustment
-        ↓
-offline comparison preview ── or ── two compatible API requests
-        ↓
-task prompt + mergeable AGENTS.md snippet
+Primary Agent completes or blocks
+              ↓
+      structured evidence JSON
+              ↓
+ deterministic Report Gate (shared by Skill, CLI, web)
+       ↙                         ↘
+brief report              independent Reviewer
+                                  ↓
+                       standard / escalation report
+```
+
+The Reviewer is not a permanent four-agent pipeline. It runs only when the gate finds medium/high risk, partial work, failed or missing validation, open questions, or a human decision.
+
+## Try the deterministic Harness
+
+Requires Node.js 18 or newer. No dependencies or build step are required.
+
+```bash
+node skills/adaptive-work-report/scripts/report-gate.mjs \
+  --input path/to/evidence.json \
+  --pretty
+```
+
+Example input:
+
+```json
+{
+  "task_summary": "Repair the mobile payment button",
+  "status": "completed",
+  "risk": "low",
+  "evidence": [
+    { "type": "test", "label": "Mobile click flow", "result": "passed" }
+  ],
+  "changed_scope": ["payment button hit area"],
+  "open_questions": [],
+  "human_decision_needed": false
+}
+```
+
+The gate returns only policy—not prose:
+
+```json
+{
+  "mode": "brief",
+  "required_sections": ["result", "changes", "verification"],
+  "max_bullets": 3,
+  "reviewer_required": false,
+  "missing_evidence": [],
+  "reason_codes": ["verified_low_risk"]
+}
+```
+
+## Install the Codex Skill
+
+Clone this repository, then copy the self-contained Skill into your personal Codex Skills directory:
+
+```bash
+mkdir -p ~/.codex/skills
+cp -R skills/adaptive-work-report ~/.codex/skills/
+```
+
+Use it explicitly:
+
+```text
+$adaptive-work-report
+```
+
+For a repository-wide convention, merge the relevant section from [`AGENTS.example.md`](AGENTS.example.md) into the project's `AGENTS.md`.
+
+The Skill:
+
+- collects a structured evidence object after completion or immediately on a blocker;
+- runs the deterministic gate;
+- starts one independent Reviewer Agent when required and supported by the current Codex surface;
+- refuses to imply that a review happened when a reviewer is unavailable;
+- generates only the gate-required report sections.
+
+## Evaluation
+
+Six annotated fixtures cover verified code work, unverified code work, research trade-offs, partial research, deployment blockers, and human decisions.
+
+```bash
+node --test tests/*.test.mjs
+node evals/run-evals.mjs --format markdown
+node evals/run-evals.mjs --format json
+```
+
+Current fixture results:
+
+| Variant | Required information | Unsupported claims | Irrelevant information | Action clarity |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline | 44% | 7 | 33% | 17% |
+| Prompt-only | 54% | 3 | 0% | 50% |
+| Skill + Harness | 100% | 0 | 0% | 100% |
+
+These are deterministic scores over explicitly annotated fixtures, not a claim of general model performance. The annotations and scoring code are included for inspection.
+
+## Repository map
+
+```text
+skills/adaptive-work-report/  installable Skill, schema, reviewer contract, gate
+demo/cases.mjs                six reproducible traces; three shown on the web
+evals/                        deterministic scoring and Markdown/JSON runner
+tests/                        gate, CLI, and evaluation tests
+index.html + app.js           interactive GitHub Pages research demo
 ```
 
 ## 中文说明
 
-### 它解决什么问题？
+Report Mode 解决的不是“如何让 AI 永远少说一点”，而是：**如何让 Agent 根据风险、证据和人类决策价值，决定应该汇报多少。**
 
-普通 AI 常把背景、过程、客套话和真正需要负责人知道的信息混在一起。Report Mode 不只做“摘要”，而是根据任务上下文决定应该以哪种工作回报形式输出：
+日常使用时，Primary Agent 完成任务并提交结构化证据。确定性 Harness 选择简短、标准或升级汇报，同时判断是否需要独立 Reviewer。低风险且证据充分的任务不会额外调用 Agent；中高风险、证据不足或需要人工决定时才触发复核。
 
-- **简短交付**：只写结果、改动和验证。
-- **标准决策**：先给推荐，再补一个真正影响选择的取舍。
-- **升级回报**：明确阻塞、影响以及需要负责人决定的事情。
+网页不是随机调用模型的玩具。它回放真实、固定的运行记录，并允许修改状态、风险和验证证据，实时观察同一个 Harness 如何改变信息预算和 Reviewer 路由。
 
-### 离线与 API
+第一版只控制最终汇报和阻塞升级，不管理普通进度更新，也不构建通用 Agent 平台。
 
-三个内置案例无需联网即可运行。输入自己的任务时，页面会在本地推荐回报方式，并生成可复制的 Codex 提示词和 `AGENTS.md` 规则片段。
+## Privacy and scope
 
-配置 OpenAI 兼容 API 后，页面会对同一任务请求两次：一次普通回答，一次按 Report Mode 规则回报，并列展示结果。Key 按浏览器设置保存在本机，可随时清除；项目没有后端，也不会接收 Key。
-
-## Future ideas
-
-- Local proxy mode for providers without browser CORS support
-- Team-level saved report policies
-- Response linting: detect repetition, unverifiable claims, and missing decisions
+- No API key, backend, account, or database.
+- No chain-of-thought display.
+- No dynamic swarm or multi-model router.
+- No claim that fixture scores generalize beyond the included cases.
 
 ## License
 
