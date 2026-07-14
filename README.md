@@ -1,40 +1,137 @@
 # Report Mode
 
-> Evidence before eloquence.
+> 让 Codex 的任务收尾，更清楚，也更好读。
 
-Report Mode is a small, reproducible system for adaptive Codex work reports. It combines an installable Skill, a deterministic evidence gate, and a conditional independent Reviewer Agent. It does not make every answer shorter: it spends more human attention only when risk, missing evidence, blockers, or decisions justify it.
+Report Mode 是一个小小的使用体验工具。任务做完时，它帮 Codex 用合适的篇幅说清楚：**结果是什么、改了什么、有没有检查过、接下来要不要你做决定。**
 
-**Live demo:** https://anchilv.github.io/codex-report-mode/
+它不想把每次对话变成一份长报告；只是希望你不用在一大段文字里找重点。
 
-## Research question
+**在线体验：** https://anchilv.github.io/codex-report-mode/
 
-Can a coding agent choose report detail from task evidence and decision value—rather than a fixed verbosity prompt—while preserving critical information and reducing unsupported claims?
+## 它会做什么
 
-The repository compares:
+同样是“任务结束”，不同情况应该有不同的收尾方式：
 
-1. a normal assistant response;
-2. a response with only a “be concise” prompt;
-3. the full Skill + Harness + conditional Reviewer workflow.
+| 现在的情况 | 它会怎么说 |
+| --- | --- |
+| 任务简单，且已经检查过 | 用三小段快速收尾：结果、改动、验证。 |
+| 还有遗漏、风险或待确认事项 | 多说明一点当前状态、需要注意什么和下一步。 |
+| 被权限、环境或选择卡住 | 直接指出卡点和需要你决定的事情。 |
 
-## System
+## 三个真实任务问题，看看答复有什么不同
+
+下面三个问题分别对应：已经验证完成、修改完成但还没验证，以及被外部条件卡住。每个问题只对比普通回复和 Report Mode 回复。
+
+### 1. 修复完成，而且已经验证
+
+**用户问题**
+
+> 帮我修复移动端确认支付按钮被遮挡、无法点击的问题。
+
+**普通回复**
 
 ```text
-Primary Agent completes or blocks
-              ↓
-      structured evidence JSON
-              ↓
- deterministic Report Gate (shared by Skill, CLI, web)
-       ↙                         ↘
-brief report              independent Reviewer
-                                  ↓
-                       standard / escalation report
+我已经对支付页面进行了比较完整的排查。首先查看了移动端与桌面端事件绑定差异，
+也尝试了几种 CSS 调整方式。最终确认是一层容器影响了按钮点击，因此修改了层级
+和点击区域。目前看起来已经解决，后续建议测试同学再多检查一些设备。
 ```
 
-The Reviewer is not a permanent four-agent pipeline. It runs only when the gate finds medium/high risk, partial work, failed or missing validation, open questions, or a human decision.
+**Report Mode 回复**
 
-## Try the deterministic Harness
+```text
+【结果】移动端确认支付按钮已恢复响应。
+【改动】调整遮挡层级与点击区域，未改动支付流程。
+【验证】移动端点击与下单前流程通过；桌面端布局已检查。
+```
 
-Requires Node.js 18 or newer. No dependencies or build step are required.
+**差别：** Report Mode 不复述排查过程，而是直接交代结果、实际改动和已经执行的验证。
+
+### 2. 代码改了，但测试还没运行
+
+**用户问题**
+
+> 帮我修复设置页保存按钮一直处于禁用状态的问题。
+
+**普通回复**
+
+```text
+设置页按钮问题已经修复完成，逻辑现在应该可以正常工作。
+```
+
+**Report Mode 回复**
+
+```text
+【结果】按钮逻辑已修改，但不能判定为已验证完成。
+【验证】设置页回归未运行。
+【风险】可能存在状态组合回归。
+【下一步】运行设置页回归后再宣称完成。
+```
+
+**差别：** 普通回复容易把“代码已修改”说成“问题已完成”；Report Mode 会如实保留未验证状态和下一步。
+
+### 3. 任务被生产权限卡住
+
+**用户问题**
+
+> 把修复后的服务部署到生产环境。
+
+**普通回复**
+
+```text
+部署过程中遇到了一些权限问题，目前还没有完成生产发布。我已经检查了代码和部署
+脚本，暂时没有发现明显问题。建议之后联系相关同学申请权限，或者看看有没有其他
+发布方式。因为生产环境比较重要，我没有继续尝试修改配置。
+```
+
+**Report Mode 回复**
+
+```text
+【阻塞】当前部署账号没有生产发布权限。
+【影响】修复今天无法进入生产环境。
+【需要决定】请决定由有权限同学代发，或授予一次性发布权限。
+```
+
+**差别：** Report Mode 把背景压缩成具体卡点、实际影响和一个可以马上回答的选择。
+
+## 为什么会更顺手
+
+- 简单的事不展开讲，读完就能继续做别的。
+- 有问题时不绕弯：测试没跑、权限不够、需要你拍板，都会直接写出来。
+- 不展示冗长过程，只保留真正影响下一步的信息。
+- 文档和示例以中文为主；任务输出会跟随用户指定的语言和格式。
+
+## 在网页里玩一玩
+
+演示页准备了几个常见情境。你可以改变任务状态、风险等级和验证结果，看看同一个小工具如何把“收工”“还差一点”和“卡住了”写成不同的提示。
+
+它不需要账号、后端或 API Key；页面只是回放固定的案例，方便你直观看到效果。
+
+## 安装到 Codex
+
+需要 Node.js 18 或更新版本。把仓库里的 Skill 复制到个人 Skills 目录：
+
+```bash
+mkdir -p ~/.codex/skills
+cp -R skills/adaptive-work-report ~/.codex/skills/
+```
+
+任务完成、只做了一部分或真的卡住时，可以直接使用：
+
+```text
+$adaptive-work-report
+```
+
+如果希望团队里的每个任务都沿用这个收尾习惯，可以把 [AGENTS.example.md](AGENTS.example.md) 中的规则合并到项目自己的 `AGENTS.md`。
+
+## 它怎样判断该说多少
+
+工具会先看任务状态和已经看到的事实，例如测试结果、检查过的文件或产物。然后选择一种合适的收尾格式：
+
+- **简短**：任务完成且证据充分时，最多三条。
+- **标准**：信息不完整、任务只做了一部分或仍有待确认事项时，补上风险与下一步。
+- **求助**：卡住或必须由人决定时，直接写明影响和需要的选择。
+
+这个规则放在本地脚本里，方便查看，也能在网页演示中复用：
 
 ```bash
 node skills/adaptive-work-report/scripts/report-gate.mjs \
@@ -42,106 +139,44 @@ node skills/adaptive-work-report/scripts/report-gate.mjs \
   --pretty
 ```
 
-Example input:
+输入示例：
 
 ```json
 {
-  "task_summary": "Repair the mobile payment button",
+  "task_summary": "修复移动端支付按钮",
   "status": "completed",
   "risk": "low",
   "evidence": [
-    { "type": "test", "label": "Mobile click flow", "result": "passed" }
+    { "type": "test", "label": "移动端点击流程", "result": "passed" }
   ],
-  "changed_scope": ["payment button hit area"],
+  "changed_scope": ["支付按钮点击区域"],
   "open_questions": [],
   "human_decision_needed": false
 }
 ```
 
-The gate returns only policy—not prose:
+## 本地检查
 
-```json
-{
-  "mode": "brief",
-  "required_sections": ["result", "changes", "verification"],
-  "max_bullets": 3,
-  "reviewer_required": false,
-  "missing_evidence": [],
-  "reason_codes": ["verified_low_risk"]
-}
-```
-
-## Install the Codex Skill
-
-Clone this repository, then copy the self-contained Skill into your personal Codex Skills directory:
-
-```bash
-mkdir -p ~/.codex/skills
-cp -R skills/adaptive-work-report ~/.codex/skills/
-```
-
-Use it explicitly:
-
-```text
-$adaptive-work-report
-```
-
-For a repository-wide convention, merge the relevant section from [`AGENTS.example.md`](AGENTS.example.md) into the project's `AGENTS.md`.
-
-The Skill:
-
-- collects a structured evidence object after completion or immediately on a blocker;
-- runs the deterministic gate;
-- starts one independent Reviewer Agent when required and supported by the current Codex surface;
-- refuses to imply that a review happened when a reviewer is unavailable;
-- generates only the gate-required report sections.
-
-## Evaluation
-
-Six annotated fixtures cover verified code work, unverified code work, research trade-offs, partial research, deployment blockers, and human decisions.
+仓库没有额外依赖或构建步骤：
 
 ```bash
 node --test tests/*.test.mjs
-node evals/run-evals.mjs --format markdown
-node evals/run-evals.mjs --format json
 ```
 
-Current fixture results:
-
-| Variant | Required information | Unsupported claims | Irrelevant information | Action clarity |
-| --- | ---: | ---: | ---: | ---: |
-| Baseline | 44% | 7 | 33% | 17% |
-| Prompt-only | 54% | 3 | 0% | 50% |
-| Skill + Harness | 100% | 0 | 0% | 100% |
-
-These are deterministic scores over explicitly annotated fixtures, not a claim of general model performance. The annotations and scoring code are included for inspection.
-
-## Repository map
+## 文件说明
 
 ```text
-skills/adaptive-work-report/  installable Skill, schema, reviewer contract, gate
-demo/cases.mjs                six reproducible traces; three shown on the web
-evals/                        deterministic scoring and Markdown/JSON runner
-tests/                        gate, CLI, and evaluation tests
-index.html + app.js           interactive GitHub Pages research demo
+skills/adaptive-work-report/  可直接安装的 Codex Skill
+demo/cases.mjs                网页展示用的固定情境
+index.html + app.js           可交互的静态演示页
+tests/                        规则和命令行的基础检查
 ```
 
-## 中文说明
+## 隐私
 
-Report Mode 解决的不是“如何让 AI 永远少说一点”，而是：**如何让 Agent 根据风险、证据和人类决策价值，决定应该汇报多少。**
-
-日常使用时，Primary Agent 完成任务并提交结构化证据。确定性 Harness 选择简短、标准或升级汇报，同时判断是否需要独立 Reviewer。低风险且证据充分的任务不会额外调用 Agent；中高风险、证据不足或需要人工决定时才触发复核。
-
-网页不是随机调用模型的玩具。它回放真实、固定的运行记录，并允许修改状态、风险和验证证据，实时观察同一个 Harness 如何改变信息预算和 Reviewer 路由。
-
-第一版只控制最终汇报和阻塞升级，不管理普通进度更新，也不构建通用 Agent 平台。
-
-## Privacy and scope
-
-- No API key, backend, account, or database.
-- No chain-of-thought display.
-- No dynamic swarm or multi-model router.
-- No claim that fixture scores generalize beyond the included cases.
+- 不需要 API Key、后端、账号或数据库。
+- 不显示模型内部推理过程。
+- 只根据任务中已经出现的事实来组织收尾内容。
 
 ## License
 
